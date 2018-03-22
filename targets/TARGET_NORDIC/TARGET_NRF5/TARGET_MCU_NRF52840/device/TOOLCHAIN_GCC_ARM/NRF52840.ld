@@ -24,11 +24,10 @@
   #define MBED_APP_SIZE 0xDF000
 #endif
 
-#include "mbed_config.h"
 #ifdef MBED_CONF_SD_RAM_ALLOC
-#define APP_RAM_BASE (0x20000000 + MBED_CONF_SD_RAM_ALLOC)
+  #define APP_RAM_BASE (0x20000000 + MBED_CONF_SD_RAM_ALLOC)
 #else
-#define APP_RAM_BASE 0x20003288
+  #define APP_RAM_BASE 0x20003288
 #endif
 
 MEMORY

@@ -2078,6 +2078,10 @@
             }
         ],
         "detect_code": ["1070"],
+        "pre_link_hook": {
+            "function": "MCU_NRF51Code.linker_hook",
+            "toolchains": ["GCC_ARM"]
+        },
         "post_binary_hook": {
             "function": "MCU_NRF51Code.binary_hook",
             "toolchains": ["ARM_STD", "GCC_ARM"]
@@ -3325,6 +3329,10 @@
             }
         ],
         "detect_code": ["1070"],
+        "pre_link_hook": {
+            "function": "MCU_NRF51Code.linker_hook",
+            "toolchains": ["GCC_ARM"]
+        },
         "post_binary_hook": {
             "function": "MCU_NRF51Code.binary_hook",
             "toolchains": ["ARM_STD", "GCC_ARM", "IAR"]
@@ -3372,6 +3380,10 @@
                 "offset": 114688
             }
         ],
+        "pre_link_hook": {
+            "function": "MCU_NRF51Code.linker_hook",
+            "toolchains": ["GCC_ARM"]
+        },
         "post_binary_hook": {
             "function": "MCU_NRF51Code.binary_hook",
             "toolchains": ["ARM_STD", "GCC_ARM", "IAR"]
@@ -3443,6 +3455,10 @@
             }
         ],
         "bootloader_select_index": 0,
+        "pre_link_hook": {
+            "function": "MCU_NRF51Code.linker_hook",
+            "toolchains": ["GCC_ARM"]
+        },
         "post_binary_hook": {
             "function": "MCU_NRF51Code.binary_hook",
             "toolchains": ["ARM_STD", "GCC_ARM", "IAR"]

@@ -12,10 +12,10 @@ _HOOKS = {}
 _RUNNING_HOOKS = {}
 
 # Available hook types
-_HOOK_TYPES = ["binary", "compile", "link", "assemble"]
+HOOK_TYPES = ["binary", "compile", "link", "assemble"]
 
 # Available hook steps
-_HOOK_STEPS = ["pre", "replace", "post"]
+HOOK_STEPS = ["pre", "replace", "post"]
 
 # Hook the given function. Use this function as a decorator
 def hook_tool(function):
@@ -69,15 +69,15 @@ class Hook(object):
 
     # Hook various functions directly
     @staticmethod
-    def _hook_add(hook_type, hook_step, function):
+    def hook_add(hook_type, hook_step, function):
         """Add a hook to a compile function
 
         Positional arguments:
-        hook_type - one of the _HOOK_TYPES
-        hook_step - one of the _HOOK_STEPS
+        hook_type - one of the HOOK_TYPES
+        hook_step - one of the HOOK_STEPS
         function - the function to add to the list of hooks
         """
-        if hook_type not in _HOOK_TYPES or hook_step not in _HOOK_STEPS:
+        if hook_type not in HOOK_TYPES or hook_step not in HOOK_STEPS:
             return False
         if hook_type not in _HOOKS:
             _HOOKS[hook_type] = {}
@@ -88,47 +88,47 @@ class Hook(object):
         """Add a hook to the compiler
 
         Positional Arguments:
-        hook_step - one of the _HOOK_STEPS
+        hook_step - one of the HOOK_STEPS
         function - the function to add to the list of hooks
         """
-        return self._hook_add("compile", hook_step, function)
+        return self.hook_add("compile", hook_step, function)
 
     def hook_add_linker(self, hook_step, function):
         """Add a hook to the linker
 
         Positional Arguments:
-        hook_step - one of the _HOOK_STEPS
+        hook_step - one of the HOOK_STEPS
         function - the function to add to the list of hooks
         """
-        return self._hook_add("link", hook_step, function)
+        return self.hook_add("link", hook_step, function)
 
     def hook_add_assembler(self, hook_step, function):
         """Add a hook to the assemble
 
         Positional Arguments:
-        hook_step - one of the _HOOK_STEPS
+        hook_step - one of the HOOK_STEPS
         function - the function to add to the list of hooks
         """
-        return self._hook_add("assemble", hook_step, function)
+        return self.hook_add("assemble", hook_step, function)
 
     def hook_add_binary(self, hook_step, function):
         """Add a hook to the elf to binary tool
 
         Positional Arguments:
-        hook_step - one of the _HOOK_STEPS
+        hook_step - one of the HOOK_STEPS
         function - the function to add to the list of hooks
         """
-        return self._hook_add("binary", hook_step, function)
+        return self.hook_add("binary", hook_step, function)
 
     # Hook command lines
     def _hook_cmdline(self, hook_type, function):
         """Add a hook to a command line function
 
         Positional arguments:
-        hook_type - one of the _HOOK_TYPES
+        hook_type - one of the HOOK_TYPES
         function - the function to add to the list of hooks
         """
-        if hook_type not in _HOOK_TYPES:
+        if hook_type not in HOOK_TYPES:
             return False
         self._cmdline_hooks[hook_type] = function
         return True
@@ -170,7 +170,7 @@ class Hook(object):
         """Get the command line after running all hooks
 
         Positional arguments:
-        hook_type - one of the _HOOK_TYPES
+        hook_type - one of the HOOK_TYPES
         cmdline - the initial command line
         """
         if self._cmdline_hooks.has_key(hook_type):

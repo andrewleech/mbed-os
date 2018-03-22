@@ -1,6 +1,5 @@
 /* Linker script to configure memory regions. */
 
-#include "mbed_config.h"
 #ifdef MBED_CONF_SD_RAM_ALLOC
 #define APP_RAM_BASE (0x20000000 + MBED_CONF_SD_RAM_ALLOC)
 #else

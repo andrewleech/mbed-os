@@ -27,6 +27,7 @@ from collections import namedtuple, Mapping
 from tools.targets.LPC import patch
 from tools.paths import TOOLS_BOOTLOADERS
 from tools.utils import json_file_to_dict
+from tools.hooks import HOOK_TYPES, HOOK_STEPS
 
 __all__ = ["target", "TARGETS", "TARGET_MAP", "TARGET_NAMES", "CORE_LABELS",
            "HookError", "generate_py_target", "Target",
@@ -312,56 +313,65 @@ class Target(namedtuple("Target", "name json_data resolution_order resolution_or
         return labels
 
     def init_hooks(self, hook, toolchain):
-        """Initialize the post-build hooks for a toolchain. For now, this
-        function only allows "post binary" hooks (hooks that are executed
-        after the binary image is extracted from the executable file)
+        """Initialize the post-build hooks for a toolchain.
+        The hooks must be configured in the target definition
+        and support the different types defined in tools.hooks
 
         Positional Arguments:
         hook - the hook object to add post-binary-hooks to
         toolchain - the toolchain object for inspection
         """
 
-        # If there's no hook, simply return
-        try:
-            hook_data = self.post_binary_hook
-        except AttributeError:
-            return
-        # A hook was found. The hook's name is in the format
-        # "classname.functionname"
-        temp = hook_data["function"].split(".")
-        if len(temp) != 2:
-            raise HookError(
-                ("Invalid format for hook '%s' in target '%s'"
-                 % (hook_data["function"], self.name)) +
-                " (must be 'class_name.function_name')")
-        class_name, function_name = temp
-        # "class_name" must refer to a class in this file, so check if the
-        # class exists
-        mdata = self.get_module_data()
-        if not mdata.has_key(class_name) or \
-           not inspect.isclass(mdata[class_name]):
-            raise HookError(
-                ("Class '%s' required by '%s' in target '%s'"
-                 % (class_name, hook_data["function"], self.name)) +
-                " not found in targets.py")
-        # "function_name" must refer to a static function inside class
-        # "class_name"
-        cls = mdata[class_name]
-        if (not hasattr(cls, function_name)) or \
-           (not inspect.isfunction(getattr(cls, function_name))):
-            raise HookError(
-                ("Static function '%s' " % function_name) +
-                ("required by '%s' " % hook_data["function"]) +
-                ("in target '%s' " % self.name) +
-                ("not found in class '%s'" %  class_name))
-        # Check if the hook specification also has toolchain restrictions
-        toolchain_restrictions = set(hook_data.get("toolchains", []))
-        toolchain_labels = set(c.__name__ for c in getmro(toolchain.__class__))
-        if toolchain_restrictions and \
-           not toolchain_labels.intersection(toolchain_restrictions):
-            return
-        # Finally, hook the requested function
-        hook.hook_add_binary("post", getattr(cls, function_name))
+        # If there's no hooks, simply return
+        hooks = [(hook_step, hook_type) for hook_step in HOOK_STEPS
+                 for hook_type in HOOK_TYPES]
+        for hook_step, hook_type in hooks:
+            hook_attr = "%s_%s_hook" % (hook_step, hook_type)
+            try:
+                hook_data = getattr(self, hook_attr)
+            except AttributeError:
+                # Hook not defined for target
+                continue
+
+            # A hook was found. The hook's name is in the format
+            # "classname.functionname"
+            temp = hook_data["function"].split(".")
+            if len(temp) != 2:
+                raise HookError(
+                    ("Invalid format for hook '%s' in target '%s'"
+                    % (hook_data["function"], self.name)) +
+                    " (must be 'class_name.function_name')")
+            class_name, function_name = temp
+            # "class_name" must refer to a class in this file, so check if the
+            # class exists
+            mdata = self.get_module_data()
+            if class_name not in mdata or \
+            not inspect.isclass(mdata[class_name]):
+                raise HookError(
+                    ("Class '%s' required by '%s' in target '%s'"
+                    % (class_name, hook_data["function"], self.name)) +
+                    " not found in targets.py")
+            # "function_name" must refer to a static function inside class
+            # "class_name"
+            cls = mdata[class_name]
+            hook_function = getattr(cls, function_name, None)
+            if (hook_function is None) or \
+                    (not inspect.isfunction(hook_function)):
+                raise HookError(
+                    ("Static function '%s' " % function_name) +
+                    ("required by '%s' " % hook_data["function"]) +
+                    ("in target '%s' " % self.name) +
+                    ("not found in class '%s'" %  class_name))
+            # Check if the hook specification also has toolchain restrictions
+            toolchain_restrictions = set(hook_data.get("toolchains", []))
+            toolchain_labels = set(c.__name__ for c in getmro(toolchain.__class__))
+            if toolchain_restrictions and \
+                    not toolchain_labels.intersection(toolchain_restrictions):
+                return
+            # Finally, hook the requested function
+            hook.hook_add(hook_type=hook_type, hook_step=hook_step,
+                          function=hook_function)
+
 
 ################################################################################
 # Target specific code goes in this section
@@ -463,8 +473,20 @@ class MTSCode(object):
         """A hook for the MTB MTS Dragonfly"""
         MTSCode._combine_bins_helper("MTB_MTS_DRAGONFLY", binf)
 
+
 class MCU_NRF51Code(object):
     """NRF51 Hooks"""
+    @staticmethod
+    def linker_hook(t_self, output, objects, libraries, lib_dirs, linker_script):
+        """
+        nRF5x targets allow overriding the amount of ram allocated to the softdevice
+        in the config system with the key: softdevice_ram_alloc
+        """
+        app_ram_base = t_self.config.target.softdevice_ram_alloc
+        define_string = t_self.make_ld_define('MBED_CONF_SD_RAM_ALLOC', int(app_ram_base, 0))
+        t_self.ld.append(define_string)
+        t_self.flags["ld"].append(define_string)
+
     @staticmethod
     def binary_hook(t_self, resources, _, binf):
         """Hook that merges the soft device with the bin file"""
